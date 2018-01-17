@@ -34,5 +34,5 @@ function showPpmEstimate() {
 closeButton.addEventListener('click', exit);
 estimate.addEventListener('click', startEstimating);
 
-AuxWindows.resizeCurrentTo(350, 0);  
+AuxWindows.resizeCurrentTo(350, 270);  
 

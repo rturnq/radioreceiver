@@ -34,22 +34,16 @@ function Presets(opt_presets) {
    * @param {function} callback A function to call after loading the presets.
    */
   function load(callback) {
-    chrome.storage.local.get('presets', function(cfg) {
-      if (cfg['presets']) {
-        importPresets(cfg['presets']);
-        chrome.storage.onChanged.addListener(reload);
+    var cfg = window.localStorage.getItem('presets')
+    if (cfg) {
+      importPresets(cfg);
+      callback && callback();
+    } else {
+      importPresets({});
+      save(function() {
         callback && callback();
-      } else {
-        chrome.storage.sync.get('presets', function(cfg) {
-          var info = cfg['presets'] || {};
-          importPresets(info);
-          save(function() {
-            chrome.storage.onChanged.addListener(reload);
-            callback && callback();
-          });
-        });
-      }
-    });
+      });
+    }
   }
 
   /**
@@ -57,7 +51,8 @@ function Presets(opt_presets) {
    * @param {function} callback A function to call after saving the presets.
    */
   function save(callback) {
-    chrome.storage.local.set(exportPresets(), callback);
+    window.localStorage.setItem('presets', exportPresets());
+    callback();
   }
 
   /**
@@ -115,10 +110,8 @@ function Presets(opt_presets) {
    */
   function exportPresets(obj) {
     return {
-      presets: {
-        version: 1,
-        stations: presets
-      }
+      version: 1,
+      stations: presets
     };
   }
 

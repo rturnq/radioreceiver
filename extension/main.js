@@ -12,15 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-chrome.app.runtime.onLaunched.addListener(function() {
-  chrome.app.window.create('interface.html', {
-    'id': 'radioTuner',
-    'bounds': {
-      'width': 500,
-      'height': 225
-    },
-    'resizable': false,
-    'frame': 'none'
-  });
+window.addEventListener('load', function() {
+  window.open('interface.html', 'radioTuner', 'width=500,height=225')
 });
 

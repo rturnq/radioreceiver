@@ -69,5 +69,5 @@ managePresetsLink.addEventListener('click', function() {
   AuxWindows.managePresets(opener);
 });
 
-AuxWindows.resizeCurrentTo(350, 0);  
+AuxWindows.resizeCurrentTo(350, 345);  
 

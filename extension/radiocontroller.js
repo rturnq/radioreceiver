@@ -71,16 +71,19 @@ function RadioController() {
   function start(opt_callback) {
     if (state.state == STATE.OFF) {
       state = new State(STATE.STARTING, SUBSTATE.USB, opt_callback);
-      chrome.permissions.request(
-        {'permissions': [{'usbDevices': TUNERS}]},
-        function(res) {
-          if (!res) {
-            state = new State(STATE.OFF);
-            throwError('This app has no permission to access the USB ports.');
-          } else {
-            processState();
-          }
-        });
+      navigator.usb.requestDevice({
+        filters: TUNERS
+      }).then(function(res) {
+        if (!res) {
+          state = new State(STATE.OFF);
+          throwError('This app has no permission to access the USB ports.');
+        } else {
+          processState();
+        }
+      }).catch(function (err) {
+        state = new State(STATE.OFF);
+        throwError(err);
+      });
     } else if (state.state == STATE.STOPPING || state.state == STATE.STARTING) {
       state = new State(STATE.STARTING, state.substate, opt_callback);
     }

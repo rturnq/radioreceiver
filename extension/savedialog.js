@@ -36,4 +36,4 @@ function exit() {
 cancel.addEventListener('click', exit);
 ok.addEventListener('click', save);
 
-AuxWindows.resizeCurrentTo(300, 0);
+AuxWindows.resizeCurrentTo(300, 110);

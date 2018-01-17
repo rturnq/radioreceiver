@@ -699,14 +699,12 @@ function Interface(fmRadio) {
    * Asks the user for the file to record audio into.
    */
   function startRecording() {
-    var opt = {
-      type: 'saveFile',
-      suggestedName: (currentBand.toDisplayName(getFrequency(), true)
-                      + " - "
-                      + new Date().toLocaleString() + ".wav")
-                     .replace(/[:/\\]/g, '_')
-    };
-    chrome.fileSystem.chooseEntry(opt, doRecord);
+    var name = (currentBand.toDisplayName(getFrequency(), true)
+      + " - "
+      + new Date().toLocaleString() + ".wav")
+      .replace(/[:/\\]/g, '_');
+
+    new FileSystem().createEntry(name, doRecord);
   }
 
   /**

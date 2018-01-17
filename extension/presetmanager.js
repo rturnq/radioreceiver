@@ -27,7 +27,7 @@ presets.load(showCurrentEntries);
  * Adjusts the window size to its contents.
  */
 function adjustWindow() {
-  AuxWindows.resizeCurrentTo(700, 0);
+  AuxWindows.resizeCurrentTo(700, 675);
 }
 
 /**
@@ -209,11 +209,7 @@ function getSelectedEntries(container) {
  */
 function exportSelectedPresets() {
   showError('');
-  var opt = {
-    type: 'saveFile',
-    suggestedName: 'presets.json'
-  };
-  chrome.fileSystem.chooseEntry(opt, function(fileEntry) {
+  new FileSystem().createEntry('presets.json', function(fileEntry) {
     var entries = getSelectedEntries(showPresetPane);
     var exported = new Presets(entries).exportPresets();
     fileEntry.createWriter(function(writer) {
@@ -232,13 +228,7 @@ function exportSelectedPresets() {
  */
 function importPresetsFile() {
   showError('');
-  var opt = {
-    type: 'openFile',
-    accepts: [{
-      description: 'JSON Files',
-      extensions: ['json']}]
-  };
-  chrome.fileSystem.chooseEntry(opt, function(fileEntry) {
+  new FileSystem().openEntry('presets.json', function(fileEntry) {
     fileEntry.file(function(file) {
       var reader = new FileReader();
       reader.onloadend = function() {

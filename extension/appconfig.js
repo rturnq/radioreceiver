@@ -179,39 +179,37 @@ function AppConfig() {
   }
 
   function load(callback) {
-    chrome.storage.local.get('AppConfig', function(cfg) {
-      if (cfg['AppConfig']) {
-        var newCfg = cfg['AppConfig'];
-        if (newCfg.version >= 1) {
-          config.settings.region = newCfg.settings.region;
-          config.settings.ppm = newCfg.settings.ppm;
-          config.settings.gain.auto = newCfg.settings.gain.auto;
-          config.settings.gain.value = newCfg.settings.gain.value;
-          config.settings.upconverter.enable =
-              newCfg.settings.upconverter.enable;
-          config.settings.upconverter.frequency =
-              newCfg.settings.upconverter.frequency;
-          config.settings.freeTuning = newCfg.settings.freeTuning;
-          config.state.volume = newCfg.state.volume;
-          config.state.bandName = newCfg.state.bandName;
-          config.state.bandFrequencies = newCfg.state.bandFrequencies;
-          config.state.modeName = newCfg.state.modeName;
-          config.state.modeConfigs = newCfg.state.modeConfigs;
-        }
-        callback();
-      } else {
-        loadLegacy(callback);
+    var cfg = window.localStorage.getItem('AppConfig');
+    if (cfg) {
+      var newCfg = cfg;
+      if (newCfg.version >= 1) {
+        config.settings.region = newCfg.settings.region;
+        config.settings.ppm = newCfg.settings.ppm;
+        config.settings.gain.auto = newCfg.settings.gain.auto;
+        config.settings.gain.value = newCfg.settings.gain.value;
+        config.settings.upconverter.enable =
+            newCfg.settings.upconverter.enable;
+        config.settings.upconverter.frequency =
+            newCfg.settings.upconverter.frequency;
+        config.settings.freeTuning = newCfg.settings.freeTuning;
+        config.state.volume = newCfg.state.volume;
+        config.state.bandName = newCfg.state.bandName;
+        config.state.bandFrequencies = newCfg.state.bandFrequencies;
+        config.state.modeName = newCfg.state.modeName;
+        config.state.modeConfigs = newCfg.state.modeConfigs;
       }
-    });
+      callback();
+    } else {
+      loadLegacy(callback);
+    }
   }
 
   function save() {
-    chrome.storage.local.set({'AppConfig': config});
+    window.localStorage.setItem('AppConfig', config);
   }
 
   function loadLegacy(callback) {
-    chrome.storage.local.get('currentStation', function(cfg) {
-    var newCfg = cfg['currentStation'];
+    var newCfg = window.localStorage.getItem('currentStation');
     if (newCfg) {
       if ('number' === typeof newCfg) {
         config.state.bandName = 'FM';
@@ -220,18 +218,16 @@ function AppConfig() {
         config.state.bandName = newCfg['currentBand'];
         config.state.bandFrequencies = newCfg['bands'];
       }
-      chrome.storage.local.remove('currentStation');
+      window.localStorage.removeItem('currentStation');
     }
 
-    chrome.storage.local.get('volume', function(cfg) {
-    var newCfg = cfg['volume'];
+    var newCfg = window.localStorage.getItem('volume');
     if (newCfg != null) {
       config.state.volume = newCfg;
-      chrome.storage.local.remove('volume');
+      window.localStorage.removeItem('volume');
     }
 
-    chrome.storage.local.get('settings', function(cfg) {
-    var newCfg = cfg['settings'];
+    var newCfg = window.localStorage.getItem('settings');
     if (newCfg) {
       config.settings.region = newCfg['region'];
       config.settings.ppm = newCfg['ppm'];
@@ -240,11 +236,10 @@ function AppConfig() {
       config.settings.upconverter.enable = newCfg['useUpconverter'];
       config.settings.upconverter.frequency = newCfg['upconverterFreq'];
       config.settings.freeTuning = newCfg['enableFreeTuning'];
-      chrome.storage.local.remove('settings');
+      window.localStorage.removeItem('settings');
     }
     save();
     callback();
-    })})});
   }
 
   return {

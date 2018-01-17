@@ -16,6 +16,7 @@
  * @fileoverview Functions for managing auxiliary windows.
  */
 var AuxWindows = (function() {
+  var openWindows = [];
 
   /**
    * Shows a window to save a preset.
@@ -26,25 +27,72 @@ var AuxWindows = (function() {
    * @param {string} mode The station's mode.
    */
   function savePreset(frequency, name, band) {
-    chrome.app.window.create('savedialog.html', {
-        'bounds': {
-          'width': 300,
-          'height': 1
-        },
-        'resizable': false
-      }, function(win) {
-        win.contentWindow['opener'] = window;
-        var modeData = copyObject(band.getMode());
-        modeData['step'] = band.getStep();
-        var stationData = {
-          'frequency': frequency,
-          'display': band.toDisplayName(frequency, true),
-          'band': band.getName(),
-          'mode': modeData,
-          'name': name
-        };
-        win.contentWindow['station'] = stationData;
+    var win = openDialog('savedialog.html', 'savedialog', 300, 110);
+    var modeData = copyObject(band.getMode());
+    modeData['step'] = band.getStep();
+    var stationData = {
+      'frequency': frequency,
+      'display': band.toDisplayName(frequency, true),
+      'band': band.getName(),
+      'mode': modeData,
+      'name': name
+    };
+
+    win['opener'] = window;
+    win['station'] = stationData;
+  }
+
+  /**
+   * Opens a window
+   */
+  function openWindow(url, name, options) {
+    closeWindow(name);
+    var optionsString = Object.keys(options).map(function (key) {
+      return key + '=' + options[key];
+    }).join(',');
+
+    var win = window.open(url, name, optionsString); 
+
+    win.addEventListener('beforeunload', function () {
+      var index = openWindows.indexOf(win);
+      if (index >= 0) {
+        openWindows.splice(index, 1);
+      }
     });
+    openWindows.push(win);
+    return win;
+  }
+
+  /**
+   * Opens a dialog window
+   */
+  function openDialog(url, name, width, height) {
+    return openWindow(url, name, {
+      width: width || 1,
+      height: height || 1,
+      left: width ? window.screenLeft + (window.outerWidth - width) / 2 : 0,
+      top: height ? window.screenTop + (window.outerHeight - height) / 2 : 0,
+      resizable: 0,
+      menubar: 0,
+      toolbar: 0,
+      location: 0,
+      status: 0,
+      scrollbars: 0,
+      dialog: 1
+    })
+  }
+
+  /**
+   * Closes a window by name
+   */
+  function closeWindow(name) {
+    var index = openWindows.findIndex(function (win) {
+      return win.name === name;
+    });
+    if (index >= 0) {
+      var win = openWindows[index];
+      win.close();
+    }
   }
 
   /**
@@ -65,16 +113,10 @@ var AuxWindows = (function() {
    * @param {Object} settings The current settings.
    */
   function settings(settings) {
-    chrome.app.window.create('settings.html', {
-        'bounds': {
-          'width': 350,
-          'height': 1
-        },
-        'resizable': false
-      }, function(win) {
-        win.contentWindow['opener'] = window;
-        win.contentWindow['settings'] = settings;
-    });
+
+    var win = openDialog('settings.html', 'settings', 350, 345);
+    win['opener'] = window;
+    win['settings'] = settings;
   }
 
   /**
@@ -82,16 +124,9 @@ var AuxWindows = (function() {
    * @param {AppWindow} mainWindow The app's main window.
    */
   function estimatePpm(mainWindow) {
-    chrome.app.window.create('estimateppm.html', {
-        'bounds': {
-          'width': 350,
-          'height': 1
-        },
-        'resizable': false
-      }, function(win) {
-        win.contentWindow['opener'] = window;
-        win.contentWindow['mainWindow'] = mainWindow;
-    });  
+    var win = openDialog('estimateppm.html', 'estimateppm', 350, 290);
+    win['opener'] = window;
+    win['mainWindow'] = mainWindow;
   }
 
   /**
@@ -99,16 +134,10 @@ var AuxWindows = (function() {
    * @param {AppWindow} mainWindow The app's main window.
    */
   function managePresets(mainWindow) {
-    chrome.app.window.create('presetmanager.html', {
-        'bounds': {
-          'width': 700,
-          'height': 1
-        },
-        'resizable': false
-      }, function(win) {
-        win.contentWindow['opener'] = window;
-        win.contentWindow['mainWindow'] = mainWindow;
-    });  
+    var win = openDialog('presetmanager.html', 'presetmanager', 700, 675);
+    win['opener'] = window;
+    win['mainWindow'] = mainWindow;
+    trackWindow(win);
   }
 
   /**
@@ -116,16 +145,7 @@ var AuxWindows = (function() {
    * @param {string} msg The error message to show.
    */
   function error(msg) {
-    chrome.app.window.create('error.html', {
-        'bounds': {
-          'width': 500,
-          'height': 1
-        },
-        'resizable': false
-      }, function(win) {
-        win.contentWindow['opener'] = window;
-        win.contentWindow['errorMsg'] = msg;
-    });
+    alert('There was a problem: ' + msg);
   }
 
   /**
@@ -133,14 +153,8 @@ var AuxWindows = (function() {
    * @param {string} anchor An optional anchor to jump to.
    */
   function help(anchor) {
-    chrome.app.window.create('help.html' + (anchor ? '#' + anchor : ''), {
-        'bounds': {
-          'width': 700,
-          'height': 600
-        },
-        'state': 'maximized',
-        'resizable': true
-      });
+    var win = openDialog('help.html' + (anchor ? '#' + anchor : ''), 'help', 700, 600);
+    trackWindow(win);
   }
 
   /**
@@ -149,37 +163,35 @@ var AuxWindows = (function() {
    * @param {number} height The desired height. 0 to set it automagically.
    */
   function resizeCurrentTo(width, height) {
-    // If the user has set a custom zoom level, resize the window to fit
-    var bounds = chrome.app.window.current().innerBounds;
-    var zoom = (bounds.width / window.innerWidth) || 1;
-    bounds.width = Math.round(width * zoom);
-    if (height) {
-      bounds.height = Math.round(height * zoom);
-    } else {
-      bounds.height = Math.round(document.body.scrollHeight * zoom);
-    }
+    var chromeWidth = window.outerWidth - window.innerWidth;
+    var chromeHeight = window.outerHeight - window.innerHeight;
+    window.resizeTo(width + chromeWidth, height + chromeHeight);
   }
 
   /**
    * Closes the current window.
    */
   function closeCurrent() {
-    chrome.app.window.current().close();
+    if (window.opener) {
+      window.close();
+    } else {
+      alert('Use the browser close button');
+    }
   }
 
   /**
    * Closes all windows.
    */
   function closeAll() {
-    var current = chrome.app.window.current();
-    var all = chrome.app.window.getAll();
-    for (var i = 0; i < all.length; ++i) {
-      if (all[i] !== current) {
-        all[i].close();
-      }
+    var open = openWindows.slice();
+    for (i = 0, len = openWindows.length; i < len; i++) {
+      open[i].close();
     }
-    current.close();
   }
+
+  window.addEventListener('beforeunload', function () {
+    closeAll();
+  });
 
   return {
     savePreset: savePreset,
@@ -190,7 +202,9 @@ var AuxWindows = (function() {
     help: help,
     resizeCurrentTo: resizeCurrentTo,
     closeCurrent: closeCurrent,
-    closeAll: closeAll
+    closeAll: closeAll,
+    openWindow: openWindow,
+    openDialog: openDialog
   };
 
 })();
