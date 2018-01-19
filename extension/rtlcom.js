@@ -248,32 +248,27 @@ function RtlCom(conn) {
     var ti = {
       'requestType': 'vendor',
       'recipient': 'device',
-      'direction': 'in',
       'request': 0,
       'value': value,
-      'index': index,
-      'length': Math.max(8, length)
+      'index': index
     };
-    chrome.usb.controlTransfer(conn, ti, function(event) {
-      var data = event.data.slice(0, length);
+    conn.controlTransferIn(ti, Math.max(8, length)).then(function(event) {
+      var data = event.data.buffer.slice(0, length);
       if (VERBOSE) {
         console.log('IN value 0x' + value.toString(16) + ' index 0x' +
             index.toString(16));
         console.log('    read -> ' + dumpBuffer(data));
       }
-      var rc = event.resultCode;
-      if (rc != 0) {
-        var msg = 'USB read failed (value 0x' + value.toString(16) +
-            ' index 0x' + index.toString(16) + '), rc=' + rc +
-            ', lastErrorMessage="' + chrome.runtime.lastError.message + '"';
-        if (onError) {
-          console.error(msg);
-          return onError(msg);
-        } else {
-          throw msg;
-        }
-      }
       kont(data);
+    }).catch(function (err) {
+      var msg = 'USB read failed (value 0x' + value.toString(16) +
+                ' index 0x' + index.toString(16) + '), error=' + err;
+      if (onError) {
+        console.error(msg);
+        return onError(msg);
+      } else {
+        throw msg;
+      }
     });
   }
 
@@ -288,32 +283,27 @@ function RtlCom(conn) {
     var ti = {
       'requestType': 'vendor',
       'recipient': 'device',
-      'direction': 'out',
       'request': 0,
       'value': value,
-      'index': index,
-      'data': buffer
+      'index': index
     };
-    chrome.usb.controlTransfer(conn, ti, function(event) {
+    conn.controlTransferOut(ti, buffer).then(function(event) {
       if (VERBOSE) {
         console.log('OUT value 0x' + value.toString(16) + ' index 0x' +
             index.toString(16) + ' data ' + dumpBuffer(buffer));
       }
-      var rc = event.resultCode;
-      if (rc != 0) {
-        var msg = 'USB write failed (value 0x' + value.toString(16) +
-            ' index 0x' + index.toString(16) + ' data ' + dumpBuffer(buffer) +
-            '), rc=' + rc + ', lastErrorMessage="' +
-            chrome.runtime.lastError.message + '"';
-        if (onError) {
-          console.error(msg);
-          return onError(msg);
-        } else {
-          throw msg;
-        }
-      }
       kont();
-    });
+    }).catch(function (err) {
+      var msg = 'USB write failed (value 0x' + value.toString(16) +
+                ' index 0x' + index.toString(16) + ' data ' + dumpBuffer(buffer) +
+                '), error=' + err;
+      if (onError) {
+        console.error(msg);
+        return onError(msg);
+      } else {
+        throw msg;
+      }
+    })
   }
 
   /**
@@ -323,29 +313,21 @@ function RtlCom(conn) {
    *     received buffer.
    */
   function readBulk(length, kont) {
-    var ti = {
-      'direction': 'in',
-      'endpoint': 1,
-      'length': length
-    };
-    chrome.usb.bulkTransfer(conn, ti, function(event) {
+    conn.transferIn(1, length).then(function(event) {
       if (VERBOSE) {
         console.log('IN BULK requested ' + length + ' received ' + event.data.byteLength);
       }
-      var rc = event.resultCode;
-      if (rc != 0) {
-        var msg = 'USB bulk read failed (length 0x' + length.toString(16) +
-            '), rc=' + rc + ', lastErrorMessage="' +
-            chrome.runtime.lastError.message + '"';
-        if (onError) {
-          console.error(msg);
-          return onError(msg);
-        } else {
-          throw msg;
-        }
+      kont(event.data.buffer);
+    }).catch(function (err) {
+      var msg = 'USB bulk read failed (length 0x' + length.toString(16) +
+                '), error=' + err;
+      if (onError) {
+        console.error(msg);
+        return onError(msg);
+      } else {
+        throw msg;
       }
-      kont(event.data);
-    });
+    })
   }
 
   /**
@@ -353,7 +335,7 @@ function RtlCom(conn) {
    * @param {Function} kont The continuation for this function.
    */
   function claimInterface(kont) {
-    chrome.usb.claimInterface(conn, 0, kont);
+    conn.claimInterface(0).then(kont);
   }
 
   /**
@@ -361,7 +343,7 @@ function RtlCom(conn) {
    * @param {Function} kont The continuation for this function.
    */
   function releaseInterface(kont) {
-    chrome.usb.releaseInterface(conn, 0, kont);
+    conn.releaseInterface(0).then(kont);
   }
 
   /**

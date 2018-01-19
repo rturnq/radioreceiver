@@ -405,15 +405,19 @@ function RadioController() {
                  'app needs an RTL2832U-based DVB-T dongle ' +
                  '(with an R820T tuner chip) to work.');
     } else {
-      chrome.usb.findDevices(TUNERS[index],
-          function(conns) {
-            if (conns.length == 0) {
-              doFindDevices(index + 1);
-            } else {
-              connection = conns[0];
-              processState();
-            }
+      navigator.usb.get
+
+
+      navigator.usb.getDevices(TUNERS[index]).then(function(conns) {
+        if (conns.length == 0) {
+          doFindDevices(index + 1);
+        } else {
+          connection = conns[0];
+          connection.open().then(function () {
+            processState();
           });
+        }
+      });
     }
   }
 
@@ -543,7 +547,7 @@ function RadioController() {
       });
     } else if (state.substate == SUBSTATE.TUNER) {
       state = new State(STATE.STOPPING, SUBSTATE.USB, state.param);
-      chrome.usb.closeDevice(connection, function() {
+      connection.close().then(function() {
         processState();
       });
     } else if (state.substate == SUBSTATE.USB) {
